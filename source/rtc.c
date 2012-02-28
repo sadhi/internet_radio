@@ -203,7 +203,7 @@ int X12RtcSetClock(CONST struct _tm *tm)
         }
         data[8] = tm->tm_wday;
     }
-    return(X12RtcWrite(0, data, 10));
+    return(X12RtcWrite(1, data, 10));
 }
 
 /*!
