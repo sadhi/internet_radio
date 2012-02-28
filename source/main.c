@@ -50,6 +50,7 @@
 /* global variable definitions                                             */
 /*-------------------------------------------------------------------------*/
 
+
 /*-------------------------------------------------------------------------*/
 /* local variable definitions                                              */
 /*-------------------------------------------------------------------------*/
@@ -206,7 +207,7 @@ void displayClock(CONST struct _tm *tm)
 	hour = tm->tm_hour;
 	minute = tm->tm_min;
 	
-		LogMsg_P(LOG_INFO, PSTR("Yes!,[%d] : [%d]"),hour,minute);
+	LogMsg_P(LOG_INFO, PSTR("Yes!,[%d] : [%d]"),hour,minute);
 	
 	int i;
 	for ( i=0; i<40; i++ )
@@ -258,10 +259,11 @@ int main(void)
 	 * Kroeske: time struct uit nut/os time.h (http://www.ethernut.de/api/time_8h-source.html)
 	 *
 	 */
+	
 	struct _tm gmt;
 	
 	/*
-	 * Kroeske: Ook kan 'struct _tm gmt' Zie bovenstaande link
+	 * Kroeske: Ook kan 'struct _tm gmt' of 'tm gmt' Zie bovenstaande link
 	 */
 	
     /*
@@ -315,16 +317,7 @@ int main(void)
     NutThreadSetPriority(1);
 
 	/* Enable global interrupts */
-	sei();
-	
-	
-	
-	hour = gmt.tm_hour;												//schrijft de uren in hour /overbodig\
-	minute = gmt.tm_min;											//schrijft de minuten in minutes /overbodig\
-	
-		LogMsg_P(LOG_INFO, PSTR("Yes!,[%d] : [%d]"),hour,minute);	//debug info tijd /overbodig\
-	
-	
+	sei();	
 	
 	char info[10] = "      info";									//inhoud van info
 	
@@ -336,8 +329,11 @@ int main(void)
 		if( !((t++)%15) )
 		{
 			LogMsg_P(LOG_INFO, PSTR("Yes!, I'm alive ... [%d]"),t);	//debug info
+			X12RtcGetClock(&gmt);
 			displayClock(&gmt);										//schrijft de tijd in timeDis
 			writeLcd(timeDis, info);								//schrijft de tijd en de info op het scherm
+			
+				LogMsg_P(LOG_INFO, PSTR("RTC time [%02d:%02d:%02d]"), gmt.tm_hour, gmt.tm_min, gmt.tm_sec );
 						
 		}
         
