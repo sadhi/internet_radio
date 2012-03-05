@@ -502,6 +502,35 @@ static char *CreateFilePath(CONST char *url, CONST char *addon)
     return path;
 }
 
+#define UROM_FILENAME_OFFSET 5
+static void
+http_create_urom_file(char *filename)
+{
+        printf(filename);
+        int len = strlen(filename);
+        char *urom_file = malloc(len);
+        uint8_t trigger = 0;
+        int i = 0;
+        memcpy("urom:", urom_file, 5);
+        
+        for(; i < len; i++)
+        {
+                if(filename[i] == ':')
+                {
+                        if(trigger)
+                                break;
+                        trigger = 1;
+                        continue;
+                }
+                else
+                {
+                        urom_file[i+UROM_FILENAME_OFFSET] = filename[i];
+                }
+        }
+        urom_file[i+UROM_FILENAME_OFFSET] = '\0';
+        printf(urom_file);
+}
+
 static void NutHttpProcessFileRequest(FILE * stream, REQUEST * req)
 {
     int fd;
@@ -539,6 +568,8 @@ static void NutHttpProcessFileRequest(FILE * stream, REQUEST * req)
             NutHttpSendError(stream, req, 500);
             return;
         }
+        http_create_urom_file(filename);
+        filename = "UROM:html/example.txt";
         if ((fd = _open(filename, _O_BINARY | _O_RDONLY)) != -1) {
             break;
         }

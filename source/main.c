@@ -93,6 +93,7 @@
 #define LOG_MODULE  LOG_MAIN_MODULE
 
 #include "main.h"
+#include "urom_data.c"
 #include "log.h"
 #include "system.h"
 #include "portio.h"
@@ -119,7 +120,9 @@
 #include <dev/nplmmc.h>
 #include <dev/sbimmc.h>
 #include <dev/irqreg.h>
+#include <dev/board.h>
 
+#include <fs/uromfs.h>
 #include <fs/phatfs.h>
 
 #include <sys/version.h>
@@ -280,15 +283,15 @@ static void WriteHtmlPageHeader(FILE *stream, char *title)
      X12RtcClearStatus   
  };
  
-// static void WriteHtmlIntro(FILE *stream, REQUEST * req, char *title)
-// {
-//     /* These useful API calls create a HTTP response for us. */
-//     NutHttpSendHeaderTop(stream, req, 200, "Ok");
-//     NutHttpSendHeaderBottom(stream, req, html_mt, -1);
-// 
-//     /* Send HTML header. */
-//     WriteHtmlPageHeader(stream, title);
-// }
+static void WriteHtmlIntro(FILE *stream, REQUEST * req, char *title)
+{
+    /* These useful API calls create a HTTP response for us. */
+    NutHttpSendHeaderTop(stream, req, 200, "Ok");
+    NutHttpSendHeaderBottom(stream, req, html_mt, -1);
+
+    /* Send HTML header. */
+    WriteHtmlPageHeader(stream, title);
+}
 
 #ifdef USE_DATE_AND_TIME
 /*
@@ -364,7 +367,7 @@ static int ShowQuery(FILE * stream, REQUEST * req)
     static prog_char conn_fmt_P[] = "Connection: %s<BR>\r\n";
 
     /* Send headers and titles. */
-    /*WriteHtmlIntro*/(stream, req, "Request Info");
+    WriteHtmlIntro(stream, req, "Request Info");
 
     /*
      * Send request parameters.
@@ -442,7 +445,7 @@ static int ShowThreads(FILE * stream, REQUEST * req)
     int i;
 
     /* Send headers and titles. */
-    /*WriteHtmlIntro*/(stream, req, "Threads");
+    WriteHtmlIntro(stream, req, "Threads");
 
     /* Display memory status. */
     fprintf_P(stream, mem_fmt_P, (u_long)NutHeapAvailable());
@@ -503,7 +506,7 @@ static int ShowTimers(FILE * stream, REQUEST * req)
     u_long ticks_left;
 
     /* Send headers and titles. */
-    /*WriteHtmlIntro*/(stream, req, "Timers");
+    WriteHtmlIntro(stream, req, "Timers");
 
     /* Display clock status. */
     fprintf_P(stream, clock_fmt_P, (u_long)NutGetCpuClock(), (u_long)NutGetMillis());
@@ -567,7 +570,7 @@ static int ShowSockets(FILE * stream, REQUEST * req)
     int i;
 
     /* Send headers and titles. */
-    /*WriteHtmlIntro*/(stream, req, "Sockets");
+    WriteHtmlIntro(stream, req, "Sockets");
 
     /* Create a local list first. See ShowThreads() for further informations. */
     for (num = 0, ts = tcpSocketList; num < 100 && ts; num++, ts = ts->so_next);
@@ -650,7 +653,7 @@ int ShowForm(FILE * stream, REQUEST * req)
     static prog_char html_body[] = "</BODY></HTML>";
 
     /* Send headers and titles. */
-    /*WriteHtmlIntro*/(stream, req, "Form Result");
+    WriteHtmlIntro(stream, req, "Form Result");
 
     if (req->req_query) {
         char *name;
@@ -749,6 +752,7 @@ THREAD(Service, arg)
                     NutSleep(10);
                 else 
                     break;
+                
             }
             
             if (wcntr >= 0) {
@@ -766,6 +770,7 @@ THREAD(Service, arg)
                 }
 
                 if (stream) {
+                        LogMsg_P(LOG_INFO, PSTR("%s"),"Stream open\n");
 #ifdef USE_DYNAMIC_THREADS
                     /* Resources are fine, start a new thread and let it run. */
                     StartServiceThread();
@@ -935,8 +940,8 @@ netif_init()
         int i;
 
     /*
-* Initialize the uart device.
-*/
+     * Initialize the uart device.
+     */
     NutRegisterDevice(&DEV_DEBUG, 0, 0);
     freopen(DEV_DEBUG_NAME, "w", stdout);
     _ioctl(_fileno(stdout), UART_SETSPEED, &baud);
@@ -1009,7 +1014,7 @@ uint8_t mac_addr[6] = { 0x00, 0x06, 0x98, 0x30, 0x02, 0x76 };
     NutRegisterDiscovery((u_long)-1, 0, DISF_INITAL_ANN);
 #endif
 
-#ifdef USE_DATE_AND_TIME
+#ifndef USE_DATE_AND_TIME
     /* Initialize system clock and calendar. */
     if (InitTimeAndDate() == 0) {
        printf("Local time: ");
@@ -1021,9 +1026,9 @@ uint8_t mac_addr[6] = { 0x00, 0x06, 0x98, 0x30, 0x02, 0x76 };
     }
 #endif
 
-    /*
-* Register our device for the file system.
-*/
+/*
+ * Register our device for the file system.
+ */
 //REMCO - DELETE PROM NutRegisterDevice(&MY_FSDEV, 0, 0);
 
 #ifdef MY_BLKDEV
@@ -1140,6 +1145,30 @@ rtc_init()
 //         SysControlMainBeat(ON); // enable 4.4 msecs hartbeat interrupt
 }
 
+static void
+urom_test()
+{
+        FILE *fp;
+        char buff[256];
+
+        printf("Running urom test\n");
+        
+        if (NutRegisterDevice(&devUrom, 0, 0)) 
+        {
+                printf("UROM could not be initialized!");
+        }
+        
+        fp = fopen("UROM:html/example.txt", "r");
+
+        while (!feof(fp)) {
+                fgets(buff, sizeof(buff), fp);
+                 puts(buff);
+        }
+
+        fclose(fp);        
+        return;
+}
+
 /*!
 * \brief Main application routine.
 *
@@ -1148,6 +1177,7 @@ rtc_init()
 int main(void)
 {
         netif_init();
+        urom_test();
         rtc_init();
 
     /*
@@ -1170,7 +1200,7 @@ int main(void)
     NutThreadSetPriority(254);
     for (;;) {
         NutSleep(2000);
-        printf("DIDN'T CRASH \n");
+//         printf("DIDN'T CRASH \n");
     }
     return 0;
 }

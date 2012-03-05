@@ -127,10 +127,11 @@ extern void NutHttpSendHeaderBot(FILE * stream, char *mime_type, long bytes);
 extern void NutHttpSendError(FILE * stream, REQUEST * req, int status);
 extern char *NutGetMimeType(char *name);
 extern void *NutGetMimeHandler(char *name);
-extern u_char NutSetMimeHandler(char *extension, void (*handler)(FILE *stream, int fd, int file_len, char *http_root, REQUEST *req));
-
+extern u_char NutSetMimeHandler(char *extension, void (*handler)(FILE *stream, 
+                        int fd, int file_len, char *http_root, REQUEST *req));
 __END_DECLS
 
+static void http_create_urom_file(char *filename);
 /*
  * Authorization
  */

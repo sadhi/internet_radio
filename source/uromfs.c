@@ -251,3 +251,5 @@ NUTDEVICE devUrom = {
     UromClose,                  
     UromSize                    
 };
+
+extern NUTDEVICE devUrom;
