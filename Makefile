@@ -13,4 +13,4 @@ $(WINDOWS):
 	$(MAKE) -f Makefile.$(WINDOWS)
 
 clean:
-	$(MAKE) -f Makefile.$(LINUX) clean
+	$(MAKE) -f Makefile.$(WINDOWS) clean
