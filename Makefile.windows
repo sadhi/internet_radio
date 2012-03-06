@@ -19,7 +19,7 @@ AVR_INC = c:/winavr/avr/include
 # Compiler, assembler & linker (flags)
 CC		= 	avr-gcc
 CFLAGS	= 	-mmcu=atmega2561 -Os -Wall -Wstrict-prototypes -DNUT_CPU_FREQ=14745600 \
-			-D__HARVARD_ARCH__ -DNUTOS_VERSION=433 \
+			-D__HARVARD_ARCH__ -DNUTOS_VERSION=433 -D USE_DATE_AND_TIME \
 			-Wa,-ahlms=$(SRC_DIR)/$*lst
 ASFLAGS = 	-mmcu=atmega2561 -I. -x assembler-with-cpp -Wa,-ahlms=$(SRC_DIR)/$*lst,-gstabs 
 LDFLAGS	=	-mmcu=atmega2561 -Wl,--defsym=main=0,-Map=TIStreamer.map,--cref
@@ -44,6 +44,7 @@ CFILES =        main.c			\
 		httpd.c			\
 		httpopt.c		\
 		rfctime.c		\
+                PlayStream.c            \
 		rtc.c
 
 
@@ -78,6 +79,7 @@ HFILES =        		display.h		\
 				httpd.h			\
 				rcftime.h		\
 				arch.h			\
+                                PlayStream.h            \
 				rtc.h
 
 DATA_FILE = 			html/example.txt
@@ -96,7 +98,7 @@ NUT_LIBS = $(NUT_LIB_DIR)/nutinit.o -lnutpro -lnutnet -lnutpro -lnutfs -lnutos \
 INCS =	$(addprefix $(INC_DIR)/,$(HFILES))
 
 # Linking rule. All *.o to elf file. Then convert to *.hex
-$(TARGET):	$(OBJS) $(CDATA_FILE)
+$(TARGET):	$(CDATA_FILE) $(OBJS) 
 	$(CC) $(OBJS) $(LDFLAGS) -L$(NUT_LIB_DIR) $(NUT_LIBS) -o $@.elf
 	avr-objcopy -O ihex $@.elf $@.hex
 #	hex2bin -ebin $@.hex

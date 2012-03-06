@@ -165,8 +165,11 @@
 #endif
 
 char timeDis[40];
+char infoDis[40] = "      info    ";
 int hour = 0;
 int minute = 0;
+
+struct _tm *lot;
 
 /* Service thread counter. */
 static int httpd_tc;
@@ -274,6 +277,7 @@ static void WriteHtmlPageHeader(FILE *stream, char *title)
 }
 
 /*
+/*
  * Write HTTP response and HTML page header to a specified stream.
  */
  
@@ -304,7 +308,7 @@ static void WriteHtmlIntro(FILE *stream, REQUEST * req, char *title)
 static void WriteLocalDate(FILE *stream)
 {
     time_t now = time(NULL);
-    struct _tm *lot = localtime(&now);
+    lot = localtime(&now);
     fprintf(stream, "%02u.%02u.%u", lot->tm_mday, lot->tm_mon + 1, 1900 + lot->tm_year);
 }
 
@@ -314,7 +318,7 @@ static void WriteLocalDate(FILE *stream)
 static void WriteLocalTime(FILE *stream)
 {
     time_t now = time(NULL);
-    struct _tm *lot = localtime(&now);
+    lot = localtime(&now);
     fprintf(stream, "%02u:%02u:%02u\n", lot->tm_hour, lot->tm_min, lot->tm_sec);
 }
 #endif
@@ -849,25 +853,26 @@ static int InitTimeAndDate(void)
     /* Set the local time zone. */
     _timezone = MYTZ * 60L * 60L;
 
-#ifdef RTC_CHIP
-    // /* Register and query hardware RTC, if available. */
-    // printf("Init RTC...");
-    // if (NutRegisterRtc(&RTC_CHIP)) {
-        // puts("failed");
-    // } else {
-        // u_long rtc_stat;
+#if 0
+     /* Register and query hardware RTC, if available. */
+     printf("Init RTC...");
+     if (NutRegisterRtc(&RTC_CHIP)) {
+         puts("failed");
+     } else {
+         u_long rtc_stat;
 
-        // NutRtcGetStatus(&rtc_stat);
-        // if (rtc_stat & RTC_STATUS_PF) {
-            // puts("time lost");
-        // }
-        // else {
-            // puts("OK");
-            // rc = 0;
-        // }
-    // }
+         NutRtcGetStatus(&rtc_stat);
+         if (rtc_stat & RTC_STATUS_PF) {
+                puts("time lost");
+        }
+        else {
+            puts("OK");
+            rc = 0;
+        }
+    }
 #endif /* RTC_CHIP */
 
+        printf("%s\n", MYTIMED);
 #ifdef MYTIMED
     if (rc) {
         time_t now;
@@ -1018,7 +1023,7 @@ uint8_t mac_addr[6] = { 0x00, 0x06, 0x98, 0x30, 0x02, 0x76 };
     NutRegisterDiscovery((u_long)-1, 0, DISF_INITAL_ANN);
 #endif
 
-#ifndef USE_DATE_AND_TIME
+#ifdef USE_DATE_AND_TIME
     /* Initialize system clock and calendar. */
     if (InitTimeAndDate() == 0) {
        printf("Local time: ");
@@ -1101,20 +1106,11 @@ printf("Mounting block device ");
 void
 rtc_init()
 {
-        int t=0;
+       // int t=0;
 
-        /*
-* Kroeske: time struct uit nut/os time.h (http://www.ethernut.de/api/time_8h-source.html)
-*
-*/
-        struct _tm gmt;
-
-        /*
-* Kroeske: Ook kan 'struct _tm gmt' Zie bovenstaande link
-*/
-
-        /*
-* First disable the watchdog
+       
+       
+/*First disable the watchdog
 */
         WatchDogDisable();
         NutDelay(100);
@@ -1122,31 +1118,32 @@ rtc_init()
         SPIinit();
         LedInit();
         LcdLowLevelInit();
+        LcdBackLight(LCD_BACKLIGHT_ON);
         Uart0DriverInit();
         Uart0DriverStart();
         LogInit();
-        LogMsg_P(LOG_INFO, PSTR("Hello World"));
+        LogMsg_P(LOG_INFO, PSTR("Hello World kaas"));
         CardInit();
 
         /*
 * Kroeske: sources in rtc.c en rtc.h
 */
         X12Init(); //initialiseerd de klok
-        X12RtcSetClock(&gmt); //start de klok
-        if (X12RtcGetClock(&gmt) == 0) //debug info
+        X12RtcSetClock(lot); //start de klok
+        if (X12RtcGetClock(lot) == 0) //debug info
         {
-                LogMsg_P(LOG_INFO, PSTR("RTC time [%02d:%02d:%02d]"), gmt.tm_hour, gmt.tm_min, gmt.tm_sec );
+                printf("%02u:%02u:%02u\n", lot->tm_hour, lot->tm_min, lot->tm_sec);
         }
 
 
-        if (At45dbInit()==AT45DB041B)
-        {
-        }
+        //if (At45dbInit()==AT45DB041B)
+       // {
+      //  }
 
 
         RcInit();
         KbInit();
-// SysControlMainBeat(ON); // enable 4.4 msecs hartbeat interrupt
+//SysControlMainBeat(ON); // enable 4.4 msecs hartbeat interrupt
 }
 
 static void
@@ -1180,10 +1177,11 @@ urom_test()
 */
 int main(void)
 {
+       
         netif_init();
         urom_test();
-        rtc_init();
-
+        
+        
     /*
 * Register SSI and ASP handler
 */
@@ -1198,12 +1196,20 @@ int main(void)
 * Start twelve server threads.
 */
 
+        rtc_init();
+#ifdef USE_DATE_AND_TIME
+        printf("i am here");
+#endif
+
     /*
 * We could do something useful here, like serving a watchdog.
 */
     NutThreadSetPriority(254);
     for (;;) {
         NutSleep(2000);
+        X12RtcGetClock(lot);
+        displayClock(lot);                    //schrijft de tijd in timeDis
+       writeLcd(timeDis, infoDis);                //schrijft de tijd en de info op het scherm 
 // printf("DIDN'T CRASH \n");
     }
     return 0;
